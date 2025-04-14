@@ -1,0 +1,34 @@
+{
+    "robloxLsp.diagnostics.globals": [
+        "getgenv",
+        "Skyline",
+        "listfiles",
+        "readfile",
+        "loadfile",
+        "fireclickdetector",
+        "isfile",
+        "delfile",
+        "Options",
+        "copyfunction",
+        "clonereference",
+        "cloneref",
+        "isfolder",
+        "makefolder",
+        "writefile",
+        "getcustomasset",
+        "getsynasset",
+        "http",
+        "request",
+        "http_request",
+        "syn",
+        "LPH_OBFUSCATED",
+        "LPH_NO_VIRTUALIZE",
+        "setupvalue",
+        "hookfunction",
+        "getupvalues",
+        "getconnections"
+    ],
+    "robloxLsp.diagnostics.disable": [
+        "undefined-global"
+    ]
+}
