@@ -1,10 +1,15 @@
 {
     "READ_ME": "This setting below prevents unauthorized scripts that aren't approve by Skyline Developers to be ran.",
     "AllowUnsafe": false,
+    
     "Games": {
         "dahood": {
             "file": "skyline.rip/games/dahood/dahood.lua",
             "game_ids": [2788229376]
+        },
+        "bubblegum": {
+            "file": "skyline.rip/games/bubblegum/bubblegum.lua",
+            "game_ids": [85896571713843]
         }
     }
 }
