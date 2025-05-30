@@ -6,7 +6,7 @@ local api = {
             return math.random(min, max);
         end,
         string = function(self, length)
-            local characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()[]_ ';
+            local characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             local final = '';
             
             for i = 1, length do

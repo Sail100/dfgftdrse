@@ -4,9 +4,18 @@ local userinputservice = game:GetService('UserInputService')
 local lplr = players.LocalPlayer
 local tweenservice = game:GetService('TweenService')
 
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+
 local skyline = {
     shoot = function(args)
-        replicated.MainEvent:FireServer('ShootGun', args.tool.Handle, args.rootpos, args.head.Position, args.head, args.direction)
+        replicated.MainEvent:FireServer('ShootGun',
+            args.tool:FindFirstChild('Handle'),                          --> [outer] tool handle
+            args.startposition,                                          --> [outer] starting position
+            args.position,                                               --> [outer] hit position
+            args.part,                                                   --> [outer] hit part,
+            (args.position - args.startposition).unit                    --> [outer] hit offset
+        )
     end,
     iskod = function(player)
         local character = player and player.Character or lplr.Character
@@ -18,6 +27,12 @@ local skyline = {
         end
 
         return false;
+    end,
+    getarmor = function(player)
+        return player.Character.BodyEffects.Armor.Value
+    end,
+    say = function(message)
+        replicated.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, 'All')
     end,
     isvalidtarget = function(target)
         if not target then return false end
@@ -54,15 +69,46 @@ local skyline = {
         local character = player and player.Character or lplr.Character
         if character then
             local tool = character:FindFirstChildOfClass('Tool')
-            return tool and tool:FindFirstChild('Handle') and tool
+            return tool:FindFirstChild('Handle') and tool:FindFirstChild('GunScript') and tool
         end
-        return false
+        return nil
+    end,
+    getfullammo = function(tool)
+        local ammo = lplr:WaitForChild('PlayerGui'):WaitForChild('MainScreenGui'):WaitForChild('AmmoFrame'):FindFirstChild('AmmoText')
+
+        if ammo then
+            return tonumber(ammo.Text)
+        end
+
+        return nil
+    end,
+    stomped = function(player)
+        local character = player and player.Character or lplr.Character
+        local bodyeffects = character:FindFirstChild('BodyEffects')
+        local KOd = bodyeffects and bodyeffects:FindFirstChild('SDeath') and bodyeffects.SDeath.Value
+        return KOd
     end,
     reload = function(weapon)
         replicated.MainEvent:FireServer('Reload', weapon)
     end,
+    getmoney = function()
+        local text = lplr:WaitForChild('PlayerGui'):WaitForChild('MainScreenGui'):FindFirstChild('MoneyText')
+        return text.Text:gsub('[%$,]', '')
+    end,
     hasarmor = function(player)
-        return player.Character.BodyEffects.Armor.Value < 30
+        player = player or lplr
+        return tonumber(player.Character.BodyEffects.Armor.Value) > 0
+    end,
+    needsarmor = function(player)
+        player = player or lplr
+        return tonumber(player.Character.BodyEffects.Armor.Value) < 30
+    end,
+    wallcheck = function(root)        
+        params.FilterDescendantsInstances = {lplr.Character}
+        
+        local cframe = CFrame.lookAt(root.CFrame.Position, lplr.Character.PrimaryPart.CFrame.Position)
+        local raycast = workspace:Raycast(root.Position, (lplr.Character.PrimaryPart.Position - root.Position).Unit * 12, params)
+        return (raycast) and true or false
     end,
     customassets = {
         Sounds = {
@@ -71,7 +117,7 @@ local skyline = {
             ['Neverlose'] = 'rbxassetid://7216848832',
             ['Bameware'] = 'rbxassetid://3124331820',
             ['Hitmarker'] = 'rbxassetid://160432334',
-            ['skeet'] = 'rbxassetid://4817809188',
+            ['Skeet'] = 'rbxassetid://4817809188',
             ['Rust'] = 'rbxassetid://5043539486',
             ['Lazer Beam'] = 'rbxassetid://130791043',
             ['Bow Hit'] = 'rbxassetid://1053296915',
@@ -95,46 +141,7 @@ local skyline = {
         local RootPart = Character and Character:FindFirstChild('HumanoidRootPart')
 
         if Character and RootPart then
-            if type == 'Pulse' then
-                local Attachment = Instance.new('Attachment', RootPart)
-                local Particle1 = Instance.new('ParticleEmitter', Attachment); Particle1.Name = 'Particle1'; Particle1.LightEmission = 3; Particle1.Transparency = NumberSequence.new(0); Particle1.Color = ColorSequence.new(Color3.fromRGB(0, 89, 255)); Particle1.Size = NumberSequence.new{NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 6, 1.2)}; Particle1.Rotation = NumberRange.new(0); Particle1.RotSpeed = NumberRange.new(0)
-                Particle1.Enabled = false
-                Particle1.Rate = 2
-                Particle1.Lifetime = NumberRange.new(0.25)
-                Particle1.Speed = NumberRange.new(0.1)
-                Particle1.Squash = NumberSequence.new(0)
-                Particle1.ZOffset = 1
-                Particle1.Texture = 'rbxassetid://2916153928'
-                Particle1.Orientation = 'VelocityPerpendicular'
-                Particle1.Shape = 'Box'
-                Particle1.ShapeInOut = 'Outward'
-                Particle1.ShapeStyle = 'Volume'
-
-                local Particle2 = Instance.new('ParticleEmitter', Attachment)
-                Particle2.Name = 'Particle2'
-                Particle2.LightEmission = 3
-                Particle2.Transparency = NumberSequence.new(0)
-                Particle2.Color = ColorSequence.new()
-                Particle2.Size = NumberSequence.new{NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 6, 1.2)}
-                Particle2.Rotation = NumberRange.new(0)
-                Particle2.RotSpeed = NumberRange.new(0)
-                Particle2.Enabled = false
-                Particle2.Rate = 2
-                Particle2.Lifetime = NumberRange.new(0.25)
-                Particle2.Speed = NumberRange.new(0.1)
-                Particle2.Squash = NumberSequence.new(0)
-                Particle2.ZOffset = 1
-                Particle2.Texture = 'rbxassetid://2916153928'
-                Particle2.Orientation = 'FacingCamera'
-                Particle2.Shape = 'Box'
-                Particle2.ShapeInOut = 'Outward'
-                Particle2.ShapeStyle = 'Volume'
-
-                Particle1:Emit(1)
-                Particle2:Emit(1)
-
-                game:GetService('Debris'):AddItem(Attachment, 1)
-            elseif type == 'Clone' then
+            if type == 'Clone' then
                 Character.Archivable = true
 
                 local clone = Character:Clone()
@@ -188,24 +195,80 @@ local skyline = {
 }
 
 function skyline:getnearestplayer()
+    if getgenv().sl_targets and #getgenv().sl_targets > 0 then
+        local target = getgenv().sl_targets[math.random(1, #getgenv().sl_targets)]
+        if target and target.Character and target.Character:FindFirstChild('Head') then
+            return target
+        else
+            return nil
+        end
+    end
+
     local nearestplayer = nil
     local nearestmagnitude = 9.2^18
     for _, player in next, players:GetPlayers() do
         if player ~= lplr and skyline.isvalidtarget(player) and (not table.find(skyline.friends, player.Name)) then
             local head = player.Character:FindFirstChild('Head')
             if head then
-                local screenpos, onscreen = workspace.CurrentCamera:WorldToScreenPoint(head.Position)
-                if onscreen then
-                    local magnitude = (Vector2.new(screenpos.X, screenpos.Y) - userinputservice:GetMouseLocation()).magnitude
-                    if magnitude < nearestmagnitude then
-                        nearestplayer = player
-                        nearestmagnitude = magnitude
-                    end
+                local screenpos = workspace.CurrentCamera:WorldToScreenPoint(head.Position)
+                local magnitude = (Vector2.new(screenpos.X, screenpos.Y) - userinputservice:GetMouseLocation()).magnitude
+                if magnitude < nearestmagnitude then
+                    nearestplayer = player
+                    nearestmagnitude = magnitude
                 end
             end
         end
     end
     return nearestplayer
+end
+
+
+local bad = {'Fist', 'Phone'}
+
+local lasttarget = nil
+skyline.randomplayer = function(self, list: any)
+    if not list then list = {armed = false} end;
+    if getgenv().sl_targets and #getgenv().sl_targets > 0 then
+        local target = getgenv().sl_targets[math.random(1, #getgenv().sl_targets)]
+        if target and target.Character and target.Character:FindFirstChild('Head') and not skyline.stomped(target) then
+            if list.armed then
+                local has = false
+                for _, v in target.Character:GetChildren() do
+                    if v:IsA('Tool') and not table.find(bad, v.Name) then
+                        has = true
+                        break
+                    end
+                end
+
+                if has then return nil end;
+            end
+            return target
+        else
+            return nil
+        end
+    end
+    
+    for _, player in next, players:GetPlayers() do
+        if player and player ~= lplr and player.Character and (not table.find(skyline.friends, player.Name)) and player ~= lasttarget and not skyline.stomped(player) then
+            local head = player.Character:FindFirstChild('Head')
+            if list.armed then
+                local has = false
+                for _, v in player.Character:GetChildren() do
+                    if v:IsA('Tool') and not table.find(bad, v.Name) then
+                        has = true
+                        break
+                    end
+                end
+
+                if has then return nil end;
+            end
+            if head then
+                lasttarget = player
+                return player
+            end
+        end
+    end
+    return nil
 end
 
 return skyline

@@ -10,18 +10,59 @@ local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
 local Mouse = LocalPlayer:GetMouse();
 
+local fonts = loadfile('skyline.rip/util/FontUtil.lua')()
+
 local DrawingLib = typeof(Drawing) == "table" and Drawing or { drawing_replaced = true };
 local ProtectGui = protectgui or (function() end);
 local GetHUI = gethui or (function() return CoreGui end);
 
 local IsBadDrawingLib = false;
 
-local ScreenGui = Instance.new('ScreenGui');
-pcall(ProtectGui, ScreenGui);
+local function SafeParentUI(Instance: Instance, Parent: Instance | () -> Instance)
+    if not pcall(function()
+        local DestinationParent
+        if typeof(Parent) == "function" then
+            DestinationParent = Parent()
+        else
+            DestinationParent = Parent
+        end
 
+        Instance.Parent = DestinationParent
+    end) then
+        Instance.Parent = LocalPlayer:WaitForChild("PlayerGui", math.huge)
+    end
+end
+
+local function ParentUI(UI: Instance, SkipHiddenUI: boolean?)
+    if SkipHiddenUI then
+        SafeParentUI(UI, CoreGui)
+        return
+    end
+
+    pcall(ProtectGui, UI)
+    SafeParentUI(UI, GetHUI)
+end
+
+
+local ScreenGui = Instance.new('ScreenGui');
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-local Parented = pcall(function() ScreenGui.Parent = GetHUI(); end);
-if not Parented then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 9e9) end;
+ScreenGui.DisplayOrder = 999;
+ScreenGui.ResetOnSpawn = false;
+pcall(ProtectGui, ScreenGui);
+ParentUI(ScreenGui);
+
+local ModalScreenGui = Instance.new("ScreenGui");
+ModalScreenGui.DisplayOrder = 999;
+ModalScreenGui.ResetOnSpawn = false;
+ParentUI(ModalScreenGui, true);
+
+local ModalElement = Instance.new("TextButton");
+ModalElement.BackgroundTransparency = 1
+ModalElement.Modal = false
+ModalElement.Size = UDim2.fromScale(0, 0)
+ModalElement.Text = ""
+ModalElement.ZIndex = -999
+ModalElement.Parent = ModalScreenGui
 
 --[[
     You can access Toggles & Options through (I'm planning to remove **a** option):
@@ -34,6 +75,113 @@ local Toggles = {};
 local Options = {};
 local Labels = {};
 local Buttons = {};
+local inputs = {
+    [Enum.KeyCode.LeftShift] = 'Left',
+    [Enum.KeyCode.RightShift] = 'Rig',
+    [Enum.KeyCode.LeftControl] = 'LCtrl',
+    [Enum.KeyCode.RightControl] = 'RCtrl',
+    [Enum.KeyCode.LeftAlt] = 'LAlt',
+    [Enum.KeyCode.RightAlt] = 'RAlt',
+    [Enum.KeyCode.CapsLock] = 'Caps',
+    [Enum.KeyCode.One] = '1',
+    [Enum.KeyCode.Two] = '2',
+    [Enum.KeyCode.Three] = '3',
+    [Enum.KeyCode.Four] = '4',
+    [Enum.KeyCode.Five] = '5',
+    [Enum.KeyCode.Six] = '6',
+    [Enum.KeyCode.Seven] = '7',
+    [Enum.KeyCode.Eight] = '8',
+    [Enum.KeyCode.Nine] = '9',
+    [Enum.KeyCode.Zero] = '0',
+    [Enum.KeyCode.KeypadOne] = 'Num1',
+    [Enum.KeyCode.KeypadTwo] = 'Num2',
+    [Enum.KeyCode.KeypadThree] = 'Num3',
+    [Enum.KeyCode.KeypadFour] = 'Num4',
+    [Enum.KeyCode.KeypadFive] = 'Num5',
+    [Enum.KeyCode.KeypadSix] = 'Num6',
+    [Enum.KeyCode.KeypadSeven] = 'Num7',
+    [Enum.KeyCode.KeypadEight] = 'Num8',
+    [Enum.KeyCode.KeypadNine] = 'Num9',
+    [Enum.KeyCode.KeypadZero] = 'Num0',
+    [Enum.KeyCode.Minus] = '-',
+    [Enum.KeyCode.Equals] = '=',
+    [Enum.KeyCode.Tilde] = '~',
+    [Enum.KeyCode.LeftBracket] = '[',
+    [Enum.KeyCode.RightBracket] = ']',
+    [Enum.KeyCode.RightParenthesis] = ')',
+    [Enum.KeyCode.LeftParenthesis] = '(',
+    [Enum.KeyCode.Semicolon] = ';',
+    [Enum.KeyCode.Quote] = "'",
+    [Enum.KeyCode.BackSlash] = '\\',
+    [Enum.KeyCode.Comma] = ',',
+    [Enum.KeyCode.Period] = '.',
+    [Enum.KeyCode.Slash] = '/',
+    [Enum.KeyCode.Asterisk] = '*',
+    [Enum.KeyCode.Plus] = '+',
+    [Enum.KeyCode.Backquote] = '`',
+    [Enum.KeyCode.Unknown] = '?',
+    [Enum.KeyCode.A] = 'A',
+    [Enum.KeyCode.B] = 'B',
+    [Enum.KeyCode.C] = 'C',
+    [Enum.KeyCode.D] = 'D',
+    [Enum.KeyCode.E] = 'E',
+    [Enum.KeyCode.F] = 'F',
+    [Enum.KeyCode.G] = 'G',
+    [Enum.KeyCode.H] = 'H',
+    [Enum.KeyCode.I] = 'I',
+    [Enum.KeyCode.J] = 'J',
+    [Enum.KeyCode.K] = 'K',
+    [Enum.KeyCode.L] = 'L',
+    [Enum.KeyCode.M] = 'M',
+    [Enum.KeyCode.N] = 'N',
+    [Enum.KeyCode.O] = 'O',
+    [Enum.KeyCode.P] = 'P',
+    [Enum.KeyCode.Q] = 'Q',
+    [Enum.KeyCode.R] = 'R',
+    [Enum.KeyCode.S] = 'S',
+    [Enum.KeyCode.T] = 'T',
+    [Enum.KeyCode.U] = 'U',
+    [Enum.KeyCode.V] = 'V',
+    [Enum.KeyCode.W] = 'W',
+    [Enum.KeyCode.X] = 'X',
+    [Enum.KeyCode.Y] = 'Y',
+    [Enum.KeyCode.Z] = 'Z',
+    [Enum.KeyCode.F1] = 'F1',
+    [Enum.KeyCode.F2] = 'F2',
+    [Enum.KeyCode.F3] = 'F3',
+    [Enum.KeyCode.F4] = 'F4',
+    [Enum.KeyCode.F5] = 'F5',
+    [Enum.KeyCode.F6] = 'F6',
+    [Enum.KeyCode.F7] = 'F7',
+    [Enum.KeyCode.F8] = 'F8',
+    [Enum.KeyCode.F9] = 'F9',
+    [Enum.KeyCode.F10] = 'F10',
+    [Enum.KeyCode.F11] = 'F11',
+    [Enum.KeyCode.F12] = 'F12',
+    [Enum.KeyCode.Insert] = 'INS',
+    [Enum.KeyCode.PageUp] = 'PageU',
+    [Enum.KeyCode.Delete] = 'Del',
+    [Enum.KeyCode.End] = 'END',
+    [Enum.KeyCode.PageDown] = 'PageD',
+    [Enum.KeyCode.Up] = 'Up',
+    [Enum.KeyCode.Down] = 'Down',
+    [Enum.KeyCode.Left] = 'Left',
+    [Enum.KeyCode.Right] = 'Right',
+    [Enum.KeyCode.Tab] = 'Tab',
+    [Enum.KeyCode.Return] = 'Enter',
+    [Enum.KeyCode.Space] = 'Space',
+    [Enum.KeyCode.Backspace] = 'Back',
+    [Enum.KeyCode.Escape] = 'Esc',
+    [Enum.KeyCode.NumLock] = 'NUM',
+    [Enum.KeyCode.ScrollLock] = 'SLock',
+    [Enum.KeyCode.Print] = 'Print',
+    [Enum.KeyCode.Pause] = 'Pause',
+    [Enum.KeyCode.Menu] = 'Menu',
+    [Enum.KeyCode.LeftSuper] = 'LWin',
+    [Enum.UserInputType.MouseButton1] = 'MB1',
+    [Enum.UserInputType.MouseButton2] = 'MB2',
+    [Enum.UserInputType.MouseButton3] = 'MB3',
+}
 
 getgenv().Linoria = {
     Toggles = Toggles;
@@ -58,7 +206,7 @@ local Library = {
     MainColor = Color3.fromRGB(28, 28, 28);
     BackgroundColor = Color3.fromRGB(20, 20, 20);
 
-    AccentColor = Color3.fromRGB(0, 85, 255);
+    AccentColor = Color3.fromRGB(255, 0, 0);
     DisabledAccentColor = Color3.fromRGB(142, 142, 142);
 
     OutlineColor = Color3.fromRGB(50, 50, 50);
@@ -69,8 +217,17 @@ local Library = {
     RiskColor = Color3.fromRGB(255, 50, 50);
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Code,
 
+   -- Font = Font.fromEnum(Enum.Font.Code);
+
+    Font = Font.new(fonts.new(tostring(math.random(1, 10000)), 'https://github.com/onivim/oni2/raw/refs/heads/master/assets/fonts/Inter-UI-Regular.ttf', {
+        { 
+            name = 'Regular', 
+            weight = 500, 
+            style = 'normal' 
+        }
+    }), Enum.FontWeight.Regular);
+    
     OpenedFrames = {};
     DependencyBoxes = {};
 
@@ -90,7 +247,7 @@ local Library = {
     NotifySide = "Left";
     ShowCustomCursor = true;
     ShowToggleFrameInKeybinds = true;
-    NotifyOnError = false; -- true = Library:Notify for SafeCallback (still warns in the developer console)
+    NotifyOnError = true; -- true = Library:Notify for SafeCallback (still warns in the developer console)
 
     VideoLink = "";
     TotalTabs = 0;
@@ -265,7 +422,8 @@ end;
 function Library:CreateLabel(Properties, IsHud)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
-        Font = Library.Font;
+        FontFace = Library.Font;
+        RichText = true;
         TextColor3 = Library.FontColor;
         TextSize = 16;
         TextStrokeTransparency = 0;
@@ -530,11 +688,11 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
     local function UpdateText(Text)
         if Text == nil then return end
 
-        local X, Y = Library:GetTextBounds(Text, Library.Font, 14 * DPIScale);
+        local lol = Library:GetTextBounds(Text, Library.Font, 14 * DPIScale);
 
         Label.Text = Text;
-        Tooltip.Size = UDim2.fromOffset(X + 5, Y + 4);
-        Label.Size = UDim2.fromOffset(X, Y);
+        Tooltip.Size = UDim2.fromOffset(lol.X + 5, lol.Y + 4);
+        Label.Size = UDim2.fromOffset(lol.X, lol.Y);
     end
     UpdateText(InfoStr);
 
@@ -679,10 +837,18 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
     return (1 - ((Value - MinA) / (MaxA - MinA))) * MinB + ((Value - MinA) / (MaxA - MinA)) * MaxB;
 end;
 
-function Library:GetTextBounds(Text, Font, Size, Resolution)
-    -- Ignores rich text formatting --
-    local Bounds = TextService:GetTextSize(Text:gsub("<%/?[%w:]+[^>]*>", ""), Size, Font, Resolution or Vector2.new(1920, 1080))
-    return Bounds.X, Bounds.Y
+function Library:GetTextBounds(Text, Font, Size)
+    local params = Instance.new('GetTextBoundsParams')
+    params.Text = Text:gsub("<%/?[%w:]+[^>]*>", "")
+    params.Font = Font
+    params.Size = Size
+    params.Width = 9e9
+
+    local result = TextService:GetTextBoundsAsync(params)
+    while typeof(result) == 'Instance' do
+        result = TextService:GetTextBoundsAsync(params)
+    end
+    return result
 end;
 
 function Library:GetDarkerColor(Color)
@@ -768,6 +934,9 @@ function Library:Unload()
 
     getgenv().Linoria = nil
     ScreenGui:Destroy()
+    ModalScreenGui:Destroy()
+    Library.Unloaded = true
+    getgenv().Linoria = nil
 end
 
 function Library:OnUnload(Callback)
@@ -969,7 +1138,8 @@ do
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 5, 0, 0);
             Size = UDim2.new(1, -5, 1, 0);
-            Font = Library.Font;
+            FontFace = Library.Font;
+            RichText = true;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = 'Hex color',
             Text = '#FFFFFF',
@@ -990,8 +1160,8 @@ do
         });
 
         local RgbBox = Library:Create(RgbBoxBase.Frame:FindFirstChild('TextBox'), {
-            Text = '255, 255, 255',
-            PlaceholderText = 'RGB color',
+            Text = 'R, G, B',
+            PlaceholderText = 'Enter RGB (e.g., 255, 255, 255)',
             TextColor3 = Library.FontColor
         });
 
@@ -1445,7 +1615,7 @@ do
         local DisplayLabel = Library:CreateLabel({
             Size = UDim2.new(1, 0, 1, 0);
             TextSize = 13;
-            Text = Info.Default;
+            Text = (pcall(function() return inputs[Enum.KeyCode[Info.Default]] end) and inputs[Enum.KeyCode[Info.Default]]) or '?';
             TextWrapped = true;
             ZIndex = 8;
             Parent = PickInner;
@@ -1656,11 +1826,11 @@ do
             local State = KeyPicker:GetState();
             local ShowToggle = Library.ShowToggleFrameInKeybinds and KeyPicker.Mode == 'Toggle';
 
-            if KeybindsToggle.Loaded then
+            if KeybindsToggle.Loaded and KeyPicker.Value ~= '?' then
                 KeybindsToggle:SetNormal(not ShowToggle)
 
                 KeybindsToggle:SetVisibility(true);
-                KeybindsToggle:SetText(string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, KeyPicker.Mode));
+                KeybindsToggle:SetText(string.format('[%s] %s (%s)', tostring(KeyPicker.Value):lower(), Info.Text, tostring(KeyPicker.Mode):lower()));
                 KeybindsToggle:Display(State);
             end
 
@@ -1690,10 +1860,12 @@ do
         end;
 
         function KeyPicker:GetState()
+            if KeyPicker.Value == '?' then return false end;
+
             if KeyPicker.Mode == 'Always' then
                 return true;
             elseif KeyPicker.Mode == 'Hold' then
-                if KeyPicker.Value == 'None' then
+                if KeyPicker.Value == 'None' or KeyPicker.Value == '?' then
                     return false;
                 end
 
@@ -1790,7 +1962,7 @@ do
                     Break = true;
                     Picking = false;
 
-                    DisplayLabel.Text = Key;
+                    DisplayLabel.Text = inputs[Enum.KeyCode[Key]];
                     KeyPicker.Value = Key;
 
                     Library:SafeCallback(KeyPicker.ChangedCallback, Input.KeyCode or Input.UserInputType)
@@ -1949,7 +2121,8 @@ do
                 Position = UDim2.new(0, 5, 0, 0);
                 Size = UDim2.new(0.9, -5, 1, 0);
 
-                Font = Library.Font;
+                FontFace = Library.Font;
+                RichText = true;
                 PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
                 PlaceholderText = 'Search...';
 
@@ -2105,7 +2278,7 @@ do
             end;
 
             local X = Library:GetTextBounds(ItemList.Text, Library.Font, ItemList.TextSize, Vector2.new(ToggleLabel.AbsoluteSize.X, math.huge)) + 26;
-            DropdownOuter.Size = UDim2.new(0, X, 0, 18)
+            DropdownOuter.Size = UDim2.new(0, X.X, 0, 18)
         end;
 
         function Dropdown:GetActiveValues()
@@ -2554,8 +2727,8 @@ do
         });
 
         if Data.DoesWrap then
-            local Y = select(2, Library:GetTextBounds(Data.Text, Library.Font, 14 * DPIScale, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-            TextLabel.Size = UDim2.new(1, -4, 0, Y)
+            local Size = Library:GetTextBounds(Data.Text, Library.Font, 14 * DPIScale, Vector2.new(TextLabel.AbsoluteSize.X, math.huge))
+            TextLabel.Size = UDim2.new(1, -4, 0, Size.Y)
         else
             Library:Create('UIListLayout', {
                 Padding = UDim.new(0, 4 * DPIScale);
@@ -2986,7 +3159,8 @@ do
             Position = UDim2.fromOffset(0, 0),
             Size = UDim2.fromScale(5, 1),
 
-            Font = Library.Font;
+            FontFace = Library.Font;
+            RichText = true;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
             PlaceholderText = Info.Placeholder or '';
 
@@ -3106,7 +3280,7 @@ do
                 if cursor ~= -1 then
                     -- calculate pixel width of text from start to cursor
                     local subtext = string.sub(Box.Text, 1, cursor-1)
-                    local width = TextService:GetTextSize(subtext, Box.TextSize, Box.Font, Vector2.new(math.huge, math.huge)).X
+                    local width = Library:GetTextBounds(subtext,Library.Font, Vector2.new(math.huge, math.huge)).X
 
                     -- check if we're inside the box with the cursor
                     local currentCursorPos = Box.Position.X.Offset + width
@@ -3321,6 +3495,17 @@ do
             end
         end;
 
+        function Toggle:Remove()
+            self:SetValue(not Toggle.Value)
+            self:SetVisible(not Toggle.Visible);
+        end;
+
+        function Toggle:Retoggle()
+            self:SetValue(not Toggle.Value)
+            task.wait(0.7)
+            self:SetValue(not Toggle.Value)
+        end
+
         ToggleRegion.InputBegan:Connect(function(Input)
             if Toggle.Disabled then
                 return;
@@ -3468,6 +3653,7 @@ do
             ZIndex = 9;
             Parent = SliderInner;
             RichText = true;
+            TextTruncate = Enum.TextTruncate.AtEnd;
         });
 
         Library:OnHighlight(SliderOuter, SliderOuter,
@@ -3809,7 +3995,8 @@ do
                 Position = UDim2.new(0, 5, 0, 0);
                 Size = UDim2.new(0.9, -5, 1, 0);
 
-                Font = Library.Font;
+                FontFace = Library.Font;
+                RichText = true;
                 PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
                 PlaceholderText = 'Search...';
 
@@ -4525,6 +4712,7 @@ do
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 203;
         Parent = InnerFrame;
+        RichText = true,
     });
 
     Library.Watermark = WatermarkOuter;
@@ -4607,8 +4795,8 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    local X, Y = Library:GetTextBounds(Text, Library.Font, 14);
-    Library.Watermark.Size = UDim2.new(0, X + 15, 0, (Y * 1.5) + 3);
+    local X = Library:GetTextBounds(Text, Library.Font, 14);
+    Library.Watermark.Size = UDim2.new(0, X.X + 15, 0, (X.Y * 1.5) + 3);
     Library:SetWatermarkVisibility(true)
 
     Library.WatermarkText.Text = Text;
@@ -4635,8 +4823,9 @@ function Library:Notify(...)
     end
     
     local Side = string.lower(Library.NotifySide);
-    local XSize, YSize = Library:GetTextBounds(Data.Description, Library.Font, 14);
-    YSize = YSize + 7
+    local YSize = Library:GetTextBounds(Data.Description, Library.Font, 14);
+    local XSize = YSize.X;
+    YSize = YSize.Y + 7
 
     local NotifyOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
@@ -4710,8 +4899,8 @@ function Library:Notify(...)
     });
 
     function Data:Resize()
-        XSize, YSize = Library:GetTextBounds(NotifyLabel.Text, Library.Font, 14);
-        YSize = YSize + 7
+        YSize = Library:GetTextBounds(NotifyLabel.Text, Library.Font, 14);
+        YSize = YSize.Y + 7
     
         pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize * DPIScale + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
     end
@@ -4827,6 +5016,27 @@ function Library:CreateWindow(...)
     LibraryMainOuterFrame = Outer;
     Library:MakeDraggable(Outer, 25, true);
 
+    local Glow = Library:Create('ImageLabel', {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Parent = Outer,
+        ImageColor3 = Library.AccentColor, 
+        ScaleType = Enum.ScaleType.Slice,
+        ImageTransparency = 0.8,
+        BorderColor3 = Color3.new(),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        Image = 'http://www.roblox.com/asset/?id=18245826428',
+        BackgroundTransparency = 1,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1.04, 1.04),
+        ZIndex = 0,
+        BorderSizePixel = 0,
+        SliceCenter = Rect.new(Vector2.new(21, 21), Vector2.new(79, 79))
+    })
+
+    Library:AddToRegistry(Glow, {
+        ImageColor3 = 'AccentColor';
+    });
+
     if Config.Resizable then
         Library:MakeResizable(Outer, Library.MinSize);
     end
@@ -4847,10 +5057,10 @@ function Library:CreateWindow(...)
     });
 
     local WindowLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(0, 0, 0, 25);
+        Position = UDim2.new(0.5, 0, 0, 0);
+        Size = UDim2.new(0, 1, 0, 25);
         Text = Config.Title or '';
-        TextXAlignment = Enum.TextXAlignment.Left;
+        TextXAlignment = Enum.TextXAlignment.Center;
         ZIndex = 1;
         Parent = Inner;
     });
@@ -4966,16 +5176,28 @@ function Library:CreateWindow(...)
             OriginalName = Name; Name = Name;
         };
 
-        local TabButtonWidth = Library:GetTextBounds(Tab.Name, Library.Font, 16);
-
-        local TabButton = Library:Create('Frame', {
-            BackgroundColor3 = Library.BackgroundColor;
-            BorderColor3 = Library.OutlineColor;
-            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 0.85, 0);
-            ZIndex = 1;
-            Parent = TabArea;
-        });
-
+        local Width = Library:GetTextBounds(Tab.Name, Library.Font, 16);
+        local TabButton
+        if typeof(Width) == 'Instance' then
+            local cs = Tab.Name:gsub("<%/?[%w:]+[^>]*>", "")
+            local width = Vector2.new(#cs * (9e9 * 0.4), 9e9)
+            
+            TabButton = Library:Create('Frame', {
+                BackgroundColor3 = Library.BackgroundColor;
+                BorderColor3 = Library.OutlineColor;
+                Size = UDim2.new(0, width.X + 8 + 4, 0.85, 0);
+                ZIndex = 1;
+                Parent = TabArea;
+            });
+        else
+            TabButton = Library:Create('Frame', {
+                BackgroundColor3 = Library.BackgroundColor;
+                BorderColor3 = Library.OutlineColor;
+                Size = UDim2.new(0, Width.X + 8 + 4, 0.85, 0);
+                ZIndex = 1;
+                Parent = TabArea;
+            });
+        end
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
             BorderColor3 = 'OutlineColor';
@@ -5047,7 +5269,8 @@ function Library:CreateWindow(...)
 
             TopBarLabel = Library:Create('TextLabel', {
                 BackgroundTransparency = 1;
-                Font = Library.Font;
+                FontFace = Library.Font;
+                RichText = true;
                 TextStrokeTransparency = 0;
 
                 Size = UDim2.new(1, 0, 0, 18);
@@ -5324,7 +5547,7 @@ function Library:CreateWindow(...)
                 Position = UDim2.new(0, 4, 0, 2);
                 TextSize = 14;
                 Text = Info.Name;
-                TextXAlignment = Enum.TextXAlignment.Left;
+                TextXAlignment = Enum.TextXAlignment.Center;
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -5777,7 +6000,8 @@ function Library:CreateWindow(...)
             Position = UDim2.new(0, 5, 0, 0);
             Size = UDim2.new(1, -4, 1, 0);
             BackgroundTransparency = 1;
-            Font = Library.Font;
+            FontFace = Library.Font;
+            RichText = true;
             Text = "Toggle UI";
             TextColor3 = Library.FontColor;
             TextSize = 14;
@@ -5847,7 +6071,8 @@ function Library:CreateWindow(...)
             Position = UDim2.new(0, 5, 0, 0);
             Size = UDim2.new(1, -4, 1, 0);
             BackgroundTransparency = 1;
-            Font = Library.Font;
+            FontFace = Library.Font;
+            RichText = true;
             Text = "Lock UI";
             TextColor3 = Library.FontColor;
             TextSize = 14;
@@ -5874,8 +6099,8 @@ function Library:CreateWindow(...)
 end;
 
 local function OnPlayerChange()
-    local PlayerList, ExcludedPlayerList = GetPlayers(false, false), GetPlayers(true, false);
-    local StringPlayerList, StringExcludedPlayerList = GetPlayers(false, true), GetPlayers(true, true);
+    local PlayerList, ExcludedPlayerList = GetPlayers(false, true), GetPlayers(true, true);
+    local StringPlayerList, StringExcludedPlayerList = GetPlayers(false, false), GetPlayers(true, false);
 
     for _, Value in next, Options do
         if Value.SetValues and Value.Type == 'Dropdown' and Value.SpecialType == 'Player' then
@@ -5906,5 +6131,5 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange));
 Library:GiveSignal(Teams.ChildAdded:Connect(OnTeamChange));
 Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange));
 
-getgenv().Library = Library
-return Library
+if getgenv().skip_getgenv_linoria ~= true then getgenv().Library = Library end
+return Library 
